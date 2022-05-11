@@ -96,6 +96,10 @@ BACKGROUND_BACK = pg.transform.scale(
 BACKGROUND_TRY_AGAIN = pg.transform.scale(
     pg.image.load(
             os.path.join('Put files image here', 'Setting Rect.png')), (300, 80))
+
+BACKGROUND_PLAY_MENU = pg.transform.scale(
+    pg.image.load(
+        os.path.join('Put files image here', 'play menu.png')), (SCREEN_WIDTH, SCREEN_HEIGHT))
 #-------------------------------------------------------------------------------------------------------------------#
 
 # Player 1 #
@@ -407,6 +411,51 @@ def draw_menu():
     WINDOW.blit(BACKGROUND_MENU, (0, 0))
     draw_menu_title("SPACESHIP")
 
+def play_menu():
+    run = True
+    while(run):
+        WINDOW.blit(BACKGROUND_PLAY_MENU, (0, 0))
+        MOUSE_POS = pg.mouse.get_pos()
+        
+        PLAY_1_PLAYER_BUTTON = Button(image=BACKGROUND_TRY_AGAIN, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 -50), text_input="PLAY 1 PLAYER", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
+        PLAY_2_PLAYER_BUTTON = Button(image=BACKGROUND_TRY_AGAIN, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 50), text_input="PLAY 2 PLAYER", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
+        for button in [PLAY_1_PLAYER_BUTTON, PLAY_2_PLAYER_BUTTON]:
+            button.changeColor(MOUSE_POS)
+            button.update(WINDOW)
+        
+        pg.display.update()
+        
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if PLAY_1_PLAYER_BUTTON.checkForInput(MOUSE_POS):
+                    run = False
+                    play_1_player()
+                if PLAY_2_PLAYER_BUTTON.checkForInput(MOUSE_POS):
+                    run = False
+                    play_2_player()
+
+def play_1_player():
+    run = True
+    while(run):
+        # Quy định số khung hình load trên 1 giây để ổn định khung hình
+        clock.tick(FPS)
+        
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()
+        draw_mode_2()
+
+def play_2_player():
+    a=0
+        
 def winner_menu(winner):
     run = True
     while(run):
@@ -442,16 +491,13 @@ def winner_menu(winner):
 def play():
     run = True
     while(run):
-        # Quy định số khung hình load trên 1 giây để ổn định khung hình
-        clock.tick(FPS)
-        
         events = pg.event.get()
         for event in events:
             if event.type == pg.QUIT:
                 run = False
                 pg.quit()
                 sys.exit()
-        draw_mode_2()
+        play_menu()
 
 def setting():
     run = True
