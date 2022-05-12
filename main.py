@@ -100,6 +100,18 @@ BACKGROUND_TRY_AGAIN = pg.transform.scale(
 BACKGROUND_PLAY_MENU = pg.transform.scale(
     pg.image.load(
         os.path.join('Put files image here', 'play menu.png')), (SCREEN_WIDTH, SCREEN_HEIGHT))
+BACKGROUND_PASS_5_LEVEL = pg.transform.scale(
+    pg.image.load(
+        os.path.join('Put files image here', 'Setting Rect.png')), (300, 80))
+BACKGROUND_SURVIVAL = pg.transform.scale(
+    pg.image.load(
+        os.path.join('Put files image here', 'Setting Rect.png')), (300, 80))
+BACKGROUND_VS_2_PLAYER = pg.transform.scale(
+    pg.image.load(
+        os.path.join('Put files image here', 'Setting Rect.png')), (300, 80))
+BACKGROUND_PAUSE = pg.transform.scale(
+    pg.image.load(
+        os.path.join('Put files image here', 'Setting Rect.png')), (100, 40))
 #-------------------------------------------------------------------------------------------------------------------#
 
 # Player 1 #
@@ -369,12 +381,39 @@ red_spaceship = Spaceship_red(SCREEN_WIDTH - 50, int(SCREEN_HEIGHT / 2), MAX_HEA
 spaceship_group.add(yellow_spaceship)
 spaceship_group.add(red_spaceship)
 
+def paused():
+    run = True
+    while(run):
+        clock.tick(FPS)      
+        MOUSE_POS = pg.mouse.get_pos()
+        
+        COUNTINUE_BUTTON = Button(image=BACKGROUND_PASS_5_LEVEL, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 100), text_input="COUNTINUE", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
+        BACK_BUTTON = Button(image=BACKGROUND_SURVIVAL, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), text_input="BACK TO MENU", font=get_font_comicsans(50), base_color=color_yellow, hovering_color=color_magenta)
+        
+        for button in [COUNTINUE_BUTTON, BACK_BUTTON]:
+            button.changeColor(MOUSE_POS)
+            button.update(WINDOW)
+        
+        pg.display.update()
+        
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if COUNTINUE_BUTTON.checkForInput(MOUSE_POS):
+                    run = False
+                if BACK_BUTTON.checkForInput(MOUSE_POS):
+                    main()
+
 def draw_mode_2():
     # Hiển thị background
     WINDOW.blit(background, (0, 0))
     # Hiển thị ranh giới giữa màn hình
     pg.draw.rect(WINDOW, color_purple, BORDER)
-    
+
     # Yellow spaceship
     yellow_spaceship.update()
     yellow_spaceship.health_bar()
@@ -389,8 +428,6 @@ def draw_mode_2():
     spaceship_group.draw(WINDOW)
     bullet_group.draw(WINDOW)
     
-    pg.display.update()
-
 def get_font_comicsans(size):
     return pg.font.SysFont('font-times-new-roman', size)
 
@@ -417,9 +454,12 @@ def play_menu():
         WINDOW.blit(BACKGROUND_PLAY_MENU, (0, 0))
         MOUSE_POS = pg.mouse.get_pos()
         
-        PLAY_1_PLAYER_BUTTON = Button(image=BACKGROUND_TRY_AGAIN, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 -50), text_input="PLAY 1 PLAYER", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
-        PLAY_2_PLAYER_BUTTON = Button(image=BACKGROUND_TRY_AGAIN, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 50), text_input="PLAY 2 PLAYER", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
-        for button in [PLAY_1_PLAYER_BUTTON, PLAY_2_PLAYER_BUTTON]:
+        draw_text(text="MODE",size=100,x=SCREEN_WIDTH/2,y=100,color=color_red)
+        PASS_5_LEVEP_BUTTON = Button(image=BACKGROUND_PASS_5_LEVEL, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 100), text_input="PASS 5 LEVEL", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
+        SURVIVAL_BUTTON = Button(image=BACKGROUND_SURVIVAL, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), text_input="SURVIVAL", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
+        PLAY_2_PLAYER_BUTTON = Button(image=BACKGROUND_VS_2_PLAYER, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 100), text_input="VS 2 PLAYER", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
+        BACK_BUTTON = Button(image=BACKGROUND_SURVIVAL, pos=(170, 50), text_input="BACK TO MENU", font=get_font_comicsans(50), base_color=color_yellow, hovering_color=color_magenta)
+        for button in [PASS_5_LEVEP_BUTTON, SURVIVAL_BUTTON, PLAY_2_PLAYER_BUTTON, BACK_BUTTON]:
             button.changeColor(MOUSE_POS)
             button.update(WINDOW)
         
@@ -432,14 +472,22 @@ def play_menu():
                 pg.quit()
                 sys.exit()
             if event.type == pg.MOUSEBUTTONDOWN:
-                if PLAY_1_PLAYER_BUTTON.checkForInput(MOUSE_POS):
+                if  PASS_5_LEVEP_BUTTON.checkForInput(MOUSE_POS):
                     run = False
-                    play_1_player()
+                    pass_5_level
+                if  SURVIVAL_BUTTON.checkForInput(MOUSE_POS):
+                    run = False
+                    survival()
                 if PLAY_2_PLAYER_BUTTON.checkForInput(MOUSE_POS):
                     run = False
+                    yellow_spaceship.reset_yellow()
+                    red_spaceship.reset_red()
                     play_2_player()
+                if BACK_BUTTON.checkForInput(MOUSE_POS):
+                    run=False
+                    main()
 
-def play_1_player():
+def pass_5_level():
     run = True
     while(run):
         # Quy định số khung hình load trên 1 giây để ổn định khung hình
@@ -451,10 +499,34 @@ def play_1_player():
                 run = False
                 pg.quit()
                 sys.exit()
-        draw_mode_2()
+
+def survival():
+    a=0
 
 def play_2_player():
-    a=0
+    run = True
+    while(run):
+        # Quy định số khung hình load trên 1 giây để ổn định khung hình
+        clock.tick(FPS)
+        
+        draw_mode_2()
+        
+        MOUSE_POS = pg.mouse.get_pos()
+        PAUSE_BUTTON = Button(image=BACKGROUND_PAUSE, pos=(50, 30), text_input="PAUSE", font=get_font_comicsans(35), base_color=color_cyan, hovering_color=color_lime)
+        PAUSE_BUTTON.changeColor(MOUSE_POS)
+        PAUSE_BUTTON.update(WINDOW)
+        
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:    
+                if PAUSE_BUTTON.checkForInput(MOUSE_POS):
+                    paused()
+                
+        pg.display.update()
         
 def winner_menu(winner):
     run = True
@@ -482,7 +554,7 @@ def winner_menu(winner):
             if event.type == pg.MOUSEBUTTONDOWN:
                 if TRY_AGAIN_BUTTON.checkForInput(MOUSE_POS):
                     run = False
-                    play()
+                    play_2_player()
                 if BACK_BUTTON.checkForInput(MOUSE_POS):
                     run = False
                     main()
