@@ -2,13 +2,14 @@
 import pygame as pg
 import os
 import sys
+import random
 from button import Button
 pg.init()
 pg.font.init()
 pg.mixer.init()
 #==================================================================================================================================================================#
 
-# Cac chuan khung hinh 
+# Các chuẩn khung hình
 # 1280 x 720
 # 1920 x 1080
 # 1440 x 900
@@ -48,7 +49,11 @@ MAX_BULLET = 3
 # Tốc độ đạn
 SPEED_BULLET = 9
 #==================================================================================================================================================================#
+# Chỉnh số hàng, cột quái xuất hiện
+rows = 9
+cols = 5
 
+SPEED_ALIEN_BULLET = 10
 
 # Setting khung hình chạy bao nhiêu frame:
 #==================================================================================================================================================================#
@@ -77,9 +82,9 @@ BACKGROUND_PLAY = pg.transform.scale(
     pg.image.load(
         os.path.join('Put files image here', 'Play Rect.png')), (200, 80))
 
-BACKGROUND_SETTING = pg.transform.scale(
+BACKGROUND_HOW_TO_PLAY = pg.transform.scale(
     pg.image.load(
-            os.path.join('Put files image here', 'Setting Rect.png')), (300, 80))
+            os.path.join('Put files image here', 'Setting Rect.png')), (400, 80))
 
 BACKGROUND_QUIT = pg.transform.scale(
     pg.image.load(
@@ -160,6 +165,35 @@ BULLET_FIRE_SOUND = pg.mixer.Sound(os.path.join('Put files audio here', 'Gun+Sil
 EXPLORE_SPACESHIP_SOUND = pg.mixer.Sound(os.path.join('Put files audio here', 'Explosion_1.mp3'))
 #==================================================================================================================================================================#
 
+# Hàm in chữ lên màn hình
+
+# Hàm lấy font chữ
+def get_font_comicsans(size):
+    return pg.font.SysFont('font-times-new-roman', size)
+
+# In tiêu đề menu
+def draw_menu_title (text):
+    font = get_font_comicsans(50)
+    draw_text = font.render(text, 1, color_cyan)
+    x = 105
+    y = 40
+    WINDOW.blit(draw_text, (x, y))
+
+# In lấy vị trí đặt là chính giữa box chứa chữ
+def draw_text (text, size, x, y, color):
+    font = get_font_comicsans(size)
+    draw_text = font.render(text, 1, color)
+    text_rect = draw_text.get_rect(center=(x, y))
+    WINDOW.blit(draw_text, text_rect)
+
+# In lấy vị trí đặt là góc trên bên trái box chứa chữ
+def draw_text_guide (text, size, x, y, color):
+    font = get_font_comicsans(size)
+    draw_text = font.render(text, 1, color)
+    WINDOW.blit(draw_text, (x, y))
+
+#==================================================================================================================================================================#
+
 # Đối tượng phi thuyền vàng và các phương thức của nó --- PLAYER 1
 class Spaceship_yellow(pg.sprite.Sprite):
     def __init__ (self, x, y, health):
@@ -168,7 +202,7 @@ class Spaceship_yellow(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
         self.health_max = MAX_HEALTH
-        self.health_remainning = health
+        self.health_remaining = health
         self.last_shot = pg.time.get_ticks()
         self.last_burst = pg.time.get_ticks()
         self.mode_shot = 1 # set mode bắn đạn
@@ -216,8 +250,7 @@ class Spaceship_yellow(pg.sprite.Sprite):
                             self.last_burst = time_now
                 else:
                     self.num_bullet = 0
-                
-                
+       
         # Bắn từng viên 1
         if self.mode_shot == 1:
             cooldown_bullet = 500
@@ -226,22 +259,22 @@ class Spaceship_yellow(pg.sprite.Sprite):
                 bullet_group.add(bullet)
                 BULLET_FIRE_SOUND.play()
                 self.last_shot = time_now
-    
+
     def reset_yellow(self):
-        self.health_remainning = self.health_max
+        self.health_remaining = self.health_max
         bullet_group.empty()
         self.rect.center = [50, int(SCREEN_HEIGHT / 2)]
                   
     def health_bar(self):
         pos_size_bar_red = (self.rect.left, self.rect.bottom + 10, self.rect.width, 15) 
         pg.draw.rect(WINDOW, color_red, pos_size_bar_red)
-        if self.health_remainning > 0:
-            ratio_health = (self.health_remainning / self.health_max)
+        if self.health_remaining > 0:
+            ratio_health = (self.health_remaining / self.health_max)
             pos_size_bar_green = (self.rect.left, self.rect.bottom + 10, int(self.rect.width * ratio_health), 15)
             pg.draw.rect(WINDOW, color_lime, pos_size_bar_green)
-        if self.health_remainning <= 0:
+        if self.health_remaining <= 0:
             EXPLORE_SPACESHIP_SOUND.play()
-            self.health_remainning = self.health_max
+            self.health_remaining = self.health_max
             bullet_group.empty()
             Spaceship_yellow.reset_yellow(self)
             red_spaceship.reset_red()
@@ -260,7 +293,101 @@ class Bullets_yellow(pg.sprite.Sprite):
         if pg.sprite.spritecollide(self, spaceship_group, False):
             self.kill()
             BULLET_HIT_SOUND.play()
-            red_spaceship.health_remainning -= 1
+            red_spaceship.health_remaining -= 1
+            
+class Spaceship(pg.sprite.Sprite):
+    def __init__ (self, x, y, health):
+        pg.sprite.Sprite.__init__(self)
+        self.image = YELLOW_SPACESHIP
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+        self.health_max = MAX_HEALTH
+        self.health_remaining = health
+        self.last_shot = pg.time.get_ticks()
+        self.last_burst = pg.time.get_ticks()
+        self.mode_shot = 1 # set mode bắn đạn
+        self.num_bullet = 0 # set số lượng đạn bắn ban đầu
+
+
+    def update(self):
+        key = pg.key.get_pressed()
+        # Set cooldown
+        cooldown_bullet = 100 # đơn vị tính là mili giây. 1000 mili giây = 1 giây 
+        cooldown_burst = 600
+        
+        # move
+        if key[pg.K_a] and self.rect.left > 10:
+            self.rect.x -= SPEED_SPACESHIP
+        if key[pg.K_d] and self.rect.right < SCREEN_WIDTH - 10:
+            self.rect.x += SPEED_SPACESHIP
+        if key[pg.K_w] and self.rect.top > 10:
+            self.rect.y -= SPEED_SPACESHIP
+        if key[pg.K_s] and self.rect.bottom < SCREEN_HEIGHT - 10:
+            self.rect.y += SPEED_SPACESHIP   
+        # mode
+        # Bắn từng viên 1
+        if key[pg.K_c]:
+            self.mode_shot = 1
+        # Bắn 3 viên 1 lúc
+        if key[pg.K_v]:
+            self.mode_shot = 0
+        
+        # get time
+        time_now = pg.time.get_ticks()
+        
+        # shot    
+        # Bắn 3 viên 1 lúc
+        if self.mode_shot == 0:
+            cooldown_bullet = 100
+            if key[pg.K_SPACE]:
+                if time_now - self.last_burst > cooldown_burst:
+                    if time_now - self.last_shot > cooldown_bullet:
+                        if self.num_bullet < MAX_BULLET:
+                            bullet = Bullets(self.rect.centerx + 20, self.rect.top + 27)
+                            bullet_group.add(bullet)
+                            BULLET_FIRE_SOUND.play()
+                            self.num_bullet += 1
+                            self.last_shot = time_now
+                        else:
+                            self.last_burst = time_now
+                else:
+                    self.num_bullet = 0
+       
+        # Bắn từng viên 1
+        if self.mode_shot == 1:
+            cooldown_bullet = 500
+            if key[pg.K_SPACE] and time_now - self.last_shot > cooldown_bullet:
+                bullet = Bullets(self.rect.centerx + 20, self.rect.top + 27)
+                bullet_group.add(bullet)
+                BULLET_FIRE_SOUND.play()
+                self.last_shot = time_now
+    
+    def health_bar(self):
+        pos_size_bar_red = (self.rect.left, self.rect.bottom + 10, self.rect.width, 15) 
+        pg.draw.rect(WINDOW, color_red, pos_size_bar_red)
+        if self.health_remaining > 0:
+            ratio_health = (self.health_remaining / self.health_max)
+            pos_size_bar_green = (self.rect.left, self.rect.bottom + 10, int(self.rect.width * ratio_health), 15)
+            pg.draw.rect(WINDOW, color_lime, pos_size_bar_green)
+        if self.health_remaining <= 0:
+            EXPLORE_SPACESHIP_SOUND.play()
+            self.health_remaining = self.health_max
+            alien_group.empty()
+            alien_bullet_group.empty()
+            menu("YOU DIED")
+
+class Bullets(pg.sprite.Sprite):
+    def __init__ (self, x, y):
+        pg.sprite.Sprite.__init__(self)
+        self.image = RED_BULLET
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+    def update(self):
+        self.rect.centerx += SPEED_BULLET
+        if self.rect.right > SCREEN_WIDTH:
+            self.kill()
+        if pg.sprite.spritecollide(self, alien_group, True):
+            self.kill()
 
 # Đối tượng phi thuyền đỏ và các phương thức của nó --- PLAYER 2
 class Spaceship_red(pg.sprite.Sprite):
@@ -270,7 +397,7 @@ class Spaceship_red(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
         self.health_max = health
-        self.health_remainning = health
+        self.health_remaining = health
         self.last_shot = pg.time.get_ticks()
         self.last_burst = pg.time.get_ticks()
         self.mode_shot = 1 # set mode bắn đạn
@@ -330,20 +457,20 @@ class Spaceship_red(pg.sprite.Sprite):
                 self.last_shot = time_now
     
     def reset_red(self):
-        self.health_remainning = self.health_max
+        self.health_remaining = self.health_max
         bullet_group.empty()
         self.rect.center = [SCREEN_WIDTH - 50, int(SCREEN_HEIGHT / 2)]
         
     def health_bar(self):
         pos_size_bar_red = (self.rect.left, self.rect.bottom + 10, self.rect.width, 15) 
         pg.draw.rect(WINDOW, color_red, pos_size_bar_red)
-        if self.health_remainning > 0:
-            ratio_health = (self.health_remainning / self.health_max)
+        if self.health_remaining > 0:
+            ratio_health = (self.health_remaining / self.health_max)
             pos_size_bar_green = (self.rect.left, self.rect.bottom + 10, int(self.rect.width * ratio_health), 15)
             pg.draw.rect(WINDOW, color_lime, pos_size_bar_green)
-        if self.health_remainning <= 0:
+        if self.health_remaining <= 0:
             EXPLORE_SPACESHIP_SOUND.play()
-            self.health_remainning = self.health_max
+            self.health_remaining = self.health_max
             bullet_group.empty()
             Spaceship_red.reset_red(self)
             yellow_spaceship.reset_yellow()
@@ -358,33 +485,220 @@ class Bullets_red(pg.sprite.Sprite):
         self.rect.center = [x, y]
     def update(self):
         self.rect.centerx -= SPEED_BULLET
-        if self.rect.left <= 0:
+        if self.rect.left <= 0: # Khi viên đạn rời khỏi màn hình sẽ tự biến mất
             self.kill()
-        if pg.sprite.spritecollide(self, spaceship_group, False):
+        if pg.sprite.spritecollide(self, spaceship_group, False): # Khi viên đạn bắn trúng vật thể sẽ tự biến mất và kém âm thanh vật thể trúng đạn
             BULLET_HIT_SOUND.play()
             self.kill()
-            yellow_spaceship.health_remainning -= 1
+            yellow_spaceship.health_remaining -= 1 # Giảm máu khi trúng đạn
     def kill_bullet(self):
         self.kill()
-        
+
+class Aliens(pg.sprite.Sprite):
+    def __init__(self, x, y):
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.image.load("Put files image here/alien" + str(random.randint(1, 5)) + ".png")
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+        self.move_counter = 0
+        self.move_direction = 1
+
+    def update(self):
+        self.rect.y += self.move_direction
+        self.move_counter += 1
+        if abs(self.move_counter) > 40:
+            self.move_direction *= -1
+            self.move_counter *= self.move_direction
+
+class Alien_Bullets(pg.sprite.Sprite):
+    def __init__(self, x, y):
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.image.load("Put files image here/alien_bullet.png")
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+
+    def update(self):
+        self.rect.x -= SPEED_ALIEN_BULLET
+        if self.rect.right <= 0:
+            self.kill()
+        if pg.sprite.spritecollide(self, spaceship_group_2, False, pg.sprite.collide_mask):
+            self.kill()
+            # Giảm hp người chơi khi bị trúng đạn
+            spaceship.health_remaining -= 1
     
 # Nhóm ảnh các phi thuyền:
 spaceship_group = pg.sprite.Group()
+spaceship_group_2 = pg.sprite.Group()
+alien_group = pg.sprite.Group()
 # Nhóm ảnh đạn:
 bullet_group = pg.sprite.Group()
+alien_bullet_group = pg.sprite.Group()
 
 # Khởi tạo 1 ảnh phi thuyền
+spaceship = Spaceship(50, int(SCREEN_HEIGHT / 2), MAX_HEALTH)
 yellow_spaceship = Spaceship_yellow(50, int(SCREEN_HEIGHT / 2), MAX_HEALTH)
 red_spaceship = Spaceship_red(SCREEN_WIDTH - 50, int(SCREEN_HEIGHT / 2), MAX_HEALTH)
 
 # Thêm ảnh 2 phi thuyền vào group ảnh
 spaceship_group.add(yellow_spaceship)
 spaceship_group.add(red_spaceship)
+spaceship_group_2.add(spaceship)
 
+def create_aliens():
+    #generate aliens
+    for row in range(rows):
+        for item in range(cols):
+            alien = Aliens(SCREEN_WIDTH/2 + 100 + item * 100, 70 + row * 70)
+            alien_group.add(alien)
+
+def reset_level():
+    alien_group.empty()
+    alien_bullet_group.empty()
+    bullet_group.empty()
+    spaceship.rect.center = (50, int(SCREEN_HEIGHT / 2))
+    spaceship.health_remaining = MAX_HEALTH
+
+# Chế độ player bắn với quái
+def pass_5_level():
+    run = True
+    last_alien_shot = pg.time.get_ticks()
+    alien_cooldown = 500
+    create_aliens()
+    while(run):
+        # Quy định số khung hình load trên 1 giây để ổn định khung hình
+        clock.tick(FPS)
+        # Hiển thị background
+        WINDOW.blit(background, (0, 0))
+        
+        text_enemy = "Enemy: "+str(len(alien_group))+"/45"
+        draw_text(text=text_enemy,size=40,x=230,y=30, color=color_yellow)
+        text_hp = "My hp: "+str(spaceship.health_remaining)+"/10"
+        draw_text(text=text_hp,size=40,x=430,y=30, color=color_yellow)
+        
+        if(len(alien_group) <= 0):
+            reset_level()
+            menu("YOU WON")
+        
+        time_now = pg.time.get_ticks()
+        
+        #shoot
+        if time_now - last_alien_shot > alien_cooldown and len(alien_group) > 0:
+            attacking_alien = random.choice(alien_group.sprites())
+            alien_bullet = Alien_Bullets(attacking_alien.rect.centerx, attacking_alien.rect.bottom)
+            alien_bullet_group.add(alien_bullet)
+            last_alien_shot = time_now
+        
+        # Yellow spaceship
+        spaceship.update()
+        spaceship.health_bar()
+        
+        # Group
+        bullet_group.update()
+        alien_bullet_group.update()
+        alien_group.update()
+        
+        spaceship_group_2.draw(WINDOW)
+        bullet_group.draw(WINDOW)
+        alien_group.draw(WINDOW)
+        alien_bullet_group.draw(WINDOW)
+        
+        MOUSE_POS = pg.mouse.get_pos()
+        PAUSE_BUTTON = Button(image=BACKGROUND_PAUSE, pos=(50, 30), text_input="PAUSE", font=get_font_comicsans(35), base_color=color_cyan, hovering_color=color_lime)
+        PAUSE_BUTTON.changeColor(MOUSE_POS)
+        PAUSE_BUTTON.update(WINDOW)
+
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:    
+                if PAUSE_BUTTON.checkForInput(MOUSE_POS):
+                    paused()
+        
+        pg.display.update()
+
+def menu(message):
+    run = True
+    while(run):
+        WINDOW.blit(BACKGROUND_VICTORY_MENU, (0, 0))
+        
+        MOUSE_POS = pg.mouse.get_pos()
+        
+        draw_text(text=message, size=150, x=SCREEN_WIDTH/2, y=SCREEN_HEIGHT/2 - 200, color=color_yellow)
+        TRY_AGAIN_BUTTON = Button(image=BACKGROUND_TRY_AGAIN, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), text_input="TRY AGAIN", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
+        BACK_BUTTON = Button(image=BACKGROUND_BACK, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 100), text_input="BACK TO MENU", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
+        
+        for button in [TRY_AGAIN_BUTTON, BACK_BUTTON]:
+            button.changeColor(MOUSE_POS)
+            button.update(WINDOW)
+        
+        pg.display.update()
+        
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if TRY_AGAIN_BUTTON.checkForInput(MOUSE_POS):
+                    run = False
+                    pass_5_level()
+                if BACK_BUTTON.checkForInput(MOUSE_POS):
+                    run = False
+                    main()
+
+# Chế độ 2 player bắn nhau
+def play_2_player():
+    run = True
+    while(run):
+        # Quy định số khung hình load trên 1 giây để ổn định khung hình
+        clock.tick(FPS)
+        
+        # Hiển thị background
+        WINDOW.blit(background, (0, 0))
+        # Hiển thị ranh giới giữa màn hình
+        pg.draw.rect(WINDOW, color_purple, BORDER)
+
+        # Yellow spaceship
+        yellow_spaceship.update()
+        yellow_spaceship.health_bar()
+        
+        # Red spaceship
+        red_spaceship.update()
+        red_spaceship.health_bar()
+        
+        # Group
+        bullet_group.update()
+        
+        spaceship_group.draw(WINDOW)
+        bullet_group.draw(WINDOW)
+        
+        MOUSE_POS = pg.mouse.get_pos()
+        PAUSE_BUTTON = Button(image=BACKGROUND_PAUSE, pos=(50, 30), text_input="PAUSE", font=get_font_comicsans(35), base_color=color_cyan, hovering_color=color_lime)
+        PAUSE_BUTTON.changeColor(MOUSE_POS)
+        PAUSE_BUTTON.update(WINDOW)
+        
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:    
+                if PAUSE_BUTTON.checkForInput(MOUSE_POS):
+                    paused()
+                
+        pg.display.update()
+
+# Chức năng nút pause
 def paused():
     run = True
     while(run):
-        clock.tick(FPS)      
+        clock.tick(FPS)
+              
         MOUSE_POS = pg.mouse.get_pos()
         
         COUNTINUE_BUTTON = Button(image=BACKGROUND_PASS_5_LEVEL, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 100), text_input="COUNTINUE", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
@@ -406,128 +720,10 @@ def paused():
                 if COUNTINUE_BUTTON.checkForInput(MOUSE_POS):
                     run = False
                 if BACK_BUTTON.checkForInput(MOUSE_POS):
+                    reset_level()
                     main()
 
-def draw_mode_2():
-    # Hiển thị background
-    WINDOW.blit(background, (0, 0))
-    # Hiển thị ranh giới giữa màn hình
-    pg.draw.rect(WINDOW, color_purple, BORDER)
-
-    # Yellow spaceship
-    yellow_spaceship.update()
-    yellow_spaceship.health_bar()
-    
-    # Red spaceship
-    red_spaceship.update()
-    red_spaceship.health_bar()
-    
-    # Group
-    bullet_group.update()
-    
-    spaceship_group.draw(WINDOW)
-    bullet_group.draw(WINDOW)
-    
-def get_font_comicsans(size):
-    return pg.font.SysFont('font-times-new-roman', size)
-
-def draw_menu_title (text):
-    font = get_font_comicsans(50)
-    draw_text = font.render(text, 1, color_cyan)
-    x = 105
-    y = 40
-    WINDOW.blit(draw_text, (x, y))
-
-def draw_text (text, size, x, y, color):
-    font = get_font_comicsans(size)
-    draw_text = font.render(text, 1, color)
-    text_rect = draw_text.get_rect(center=(x, y))
-    WINDOW.blit(draw_text, text_rect)
-
-def draw_menu():
-    WINDOW.blit(BACKGROUND_MENU, (0, 0))
-    draw_menu_title("SPACESHIP")
-
-def play_menu():
-    run = True
-    while(run):
-        WINDOW.blit(BACKGROUND_PLAY_MENU, (0, 0))
-        MOUSE_POS = pg.mouse.get_pos()
-        
-        draw_text(text="MODE",size=100,x=SCREEN_WIDTH/2,y=100,color=color_red)
-        PASS_5_LEVEP_BUTTON = Button(image=BACKGROUND_PASS_5_LEVEL, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 100), text_input="PASS 5 LEVEL", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
-        SURVIVAL_BUTTON = Button(image=BACKGROUND_SURVIVAL, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), text_input="SURVIVAL", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
-        PLAY_2_PLAYER_BUTTON = Button(image=BACKGROUND_VS_2_PLAYER, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 100), text_input="VS 2 PLAYER", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
-        BACK_BUTTON = Button(image=BACKGROUND_SURVIVAL, pos=(170, 50), text_input="BACK TO MENU", font=get_font_comicsans(50), base_color=color_yellow, hovering_color=color_magenta)
-        for button in [PASS_5_LEVEP_BUTTON, SURVIVAL_BUTTON, PLAY_2_PLAYER_BUTTON, BACK_BUTTON]:
-            button.changeColor(MOUSE_POS)
-            button.update(WINDOW)
-        
-        pg.display.update()
-        
-        events = pg.event.get()
-        for event in events:
-            if event.type == pg.QUIT:
-                run = False
-                pg.quit()
-                sys.exit()
-            if event.type == pg.MOUSEBUTTONDOWN:
-                if  PASS_5_LEVEP_BUTTON.checkForInput(MOUSE_POS):
-                    run = False
-                    pass_5_level
-                if  SURVIVAL_BUTTON.checkForInput(MOUSE_POS):
-                    run = False
-                    survival()
-                if PLAY_2_PLAYER_BUTTON.checkForInput(MOUSE_POS):
-                    run = False
-                    yellow_spaceship.reset_yellow()
-                    red_spaceship.reset_red()
-                    play_2_player()
-                if BACK_BUTTON.checkForInput(MOUSE_POS):
-                    run=False
-                    main()
-
-def pass_5_level():
-    run = True
-    while(run):
-        # Quy định số khung hình load trên 1 giây để ổn định khung hình
-        clock.tick(FPS)
-        
-        events = pg.event.get()
-        for event in events:
-            if event.type == pg.QUIT:
-                run = False
-                pg.quit()
-                sys.exit()
-
-def survival():
-    a=0
-
-def play_2_player():
-    run = True
-    while(run):
-        # Quy định số khung hình load trên 1 giây để ổn định khung hình
-        clock.tick(FPS)
-        
-        draw_mode_2()
-        
-        MOUSE_POS = pg.mouse.get_pos()
-        PAUSE_BUTTON = Button(image=BACKGROUND_PAUSE, pos=(50, 30), text_input="PAUSE", font=get_font_comicsans(35), base_color=color_cyan, hovering_color=color_lime)
-        PAUSE_BUTTON.changeColor(MOUSE_POS)
-        PAUSE_BUTTON.update(WINDOW)
-        
-        events = pg.event.get()
-        for event in events:
-            if event.type == pg.QUIT:
-                run = False
-                pg.quit()
-                sys.exit()
-            if event.type == pg.MOUSEBUTTONDOWN:    
-                if PAUSE_BUTTON.checkForInput(MOUSE_POS):
-                    paused()
-                
-        pg.display.update()
-        
+# Màn hình hiển thị sau khi chiến thắng
 def winner_menu(winner):
     run = True
     while(run):
@@ -559,7 +755,7 @@ def winner_menu(winner):
                     run = False
                     main()
                     
-
+# Chức năng nút play
 def play():
     run = True
     while(run):
@@ -571,32 +767,18 @@ def play():
                 sys.exit()
         play_menu()
 
-def setting():
+# Hiển thị menu lựa chọn chế độ chơi
+def play_menu():
     run = True
     while(run):
-        # Quy định số khung hình load trên 1 giây để ổn định khung hình
-        clock.tick(FPS)
-        
-        events = pg.event.get()
-        for event in events:
-            if event.type == pg.QUIT:
-                run = False
-                pg.quit()
-                sys.exit()
-
-
-def main ():
-    run = True
-    while(run):
+        WINDOW.blit(BACKGROUND_PLAY_MENU, (0, 0))
         MOUSE_POS = pg.mouse.get_pos()
         
-        draw_menu()
-        
-        PLAY_BUTTON = Button(image=BACKGROUND_PLAY, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 100), text_input="PLAY", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
-        OPTIONS_BUTTON = Button(image=BACKGROUND_SETTING, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), text_input="SETTING", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
-        QUIT_BUTTON = Button(image=BACKGROUND_QUIT, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 100), text_input="QUIT", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
-
-        for button in [PLAY_BUTTON, OPTIONS_BUTTON, QUIT_BUTTON]:
+        draw_text(text="MODE",size=100,x=SCREEN_WIDTH/2,y=100,color=color_red)
+        PASS_5_LEVEP_BUTTON = Button(image=BACKGROUND_PASS_5_LEVEL, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 50), text_input="PASS 5 LEVEL", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
+        PLAY_2_PLAYER_BUTTON = Button(image=BACKGROUND_VS_2_PLAYER, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 50), text_input="VS 2 PLAYER", font=get_font_comicsans(55), base_color=color_cyan, hovering_color=color_lime)
+        BACK_BUTTON = Button(image=BACKGROUND_SURVIVAL, pos=(170, 50), text_input="BACK TO MENU", font=get_font_comicsans(50), base_color=color_yellow, hovering_color=color_magenta)
+        for button in [PASS_5_LEVEP_BUTTON, PLAY_2_PLAYER_BUTTON, BACK_BUTTON]:
             button.changeColor(MOUSE_POS)
             button.update(WINDOW)
         
@@ -609,14 +791,121 @@ def main ():
                 pg.quit()
                 sys.exit()
             if event.type == pg.MOUSEBUTTONDOWN:
+                if  PASS_5_LEVEP_BUTTON.checkForInput(MOUSE_POS):
+                    run = False
+                    yellow_spaceship.reset_yellow()
+                    pass_5_level()
+                if PLAY_2_PLAYER_BUTTON.checkForInput(MOUSE_POS):
+                    run = False
+                    yellow_spaceship.reset_yellow()
+                    red_spaceship.reset_red()
+                    play_2_player()
+                if BACK_BUTTON.checkForInput(MOUSE_POS):
+                    run=False
+                    main()
+
+# Chức năng how to play: hướng dẫn chơi
+def guide():
+    run = True
+    while(run):
+        # Quy định số khung hình load trên 1 giây để ổn định khung hình
+        clock.tick(FPS)
+        
+        WINDOW.blit(BACKGROUND_PLAY_MENU, (0, 0))
+        
+        MOUSE_POS = pg.mouse.get_pos()
+        BACK_BUTTON = Button(image=BACKGROUND_SURVIVAL, pos=(170, 50), text_input="BACK TO MENU", font=get_font_comicsans(50), base_color=color_yellow, hovering_color=color_magenta)
+        BACK_BUTTON.changeColor(MOUSE_POS)
+        BACK_BUTTON.update(WINDOW)
+        
+        draw_text(text="How To Play", size=70, x=SCREEN_WIDTH/2, y=40, color=color_red)
+        
+        draw_guide_player_1()
+        draw_guide_player_2()
+        draw_guide_mode()
+
+        pg.display.update()
+        
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()   
+            if event.type == pg.MOUSEBUTTONDOWN:
+                    if BACK_BUTTON.checkForInput(MOUSE_POS):
+                        run=False
+                        main()
+
+# In ra các dòng chữ hướng dẫn player 1
+def draw_guide_player_1():
+    draw_text_guide(text="Player 1", size=50, x=30, y=120,color=color_red)
+    
+    draw_text_guide(text="W: move up", size=50, x=30, y=200,color=color_red)
+    draw_text_guide(text="S: move down", size=50, x=30, y=240,color=color_red)
+    draw_text_guide(text="A: move left", size=50, x=30, y=280,color=color_red)
+    draw_text_guide(text="D: move right", size=50, x=30, y=320,color=color_red)
+    
+    draw_text_guide(text="SPACE: shot", size=50, x=30, y=400,color=color_red)
+    draw_text_guide(text="C: switch to single", size=50, x=30, y=440,color=color_red)
+    draw_text_guide(text="V: switch to burst", size=50, x=30, y=480,color=color_red)
+
+# In ra các dòng chữ hướng dẫn player 2
+def draw_guide_player_2():
+    draw_text_guide(text="Player 2", size=50, x=530, y=120,color=color_red)
+    
+    draw_text_guide(text="arrow up: move up", size=50, x=530, y=200,color=color_red)
+    draw_text_guide(text="arrow down: move down", size=50, x=530, y=240,color=color_red)
+    draw_text_guide(text="arrow left: move left", size=50, x=530, y=280,color=color_red)
+    draw_text_guide(text="arrow right: move right", size=50, x=530, y=320,color=color_red)
+    
+    draw_text_guide(text="CTRL RIGHT: shot", size=50, x=530, y=400,color=color_red)
+    draw_text_guide(text="INS: switch to single", size=50, x=530, y=440,color=color_red)
+    draw_text_guide(text="DEL: switch to burst", size=50, x=530, y=480,color=color_red)
+
+# In ra các dòng chữ giải thích 2 mode
+def draw_guide_mode():
+    draw_text_guide(text="Mode pass 5 level: you must pass 5 level to win, each level will have some enemy spaceship. They will shoot you.", size=30, x=30, y=560,color=color_red)
+    draw_text_guide(text="Try to dodge and shoot back. You will pass when all your enemy is gone", size=30, x=220, y=580,color=color_red)
+    draw_text_guide(text="VS 2 Player: 2 players will shoot each other until 1 player runs out of health bars. The other will win.", size=30, x=30, y=640,color=color_red)
+    
+def main ():
+    run = True
+    while(run):
+        # Lấy vị trí chuột hiển thị
+        MOUSE_POS = pg.mouse.get_pos()
+        
+        # Hiển thị background sau menu chính
+        WINDOW.blit(BACKGROUND_MENU, (0, 0))
+        # In tiêu đề tên game
+        draw_menu_title("SPACESHIP")
+        # Khởi tạo Các nút
+        PLAY_BUTTON = Button(image=BACKGROUND_PLAY, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 100), text_input="PLAY", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
+        HOW_TO_PLAY_BUTTON = Button(image=BACKGROUND_HOW_TO_PLAY, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), text_input="HOW TO PLAY", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
+        QUIT_BUTTON = Button(image=BACKGROUND_QUIT, pos=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 100), text_input="QUIT", font=get_font_comicsans(75), base_color=color_cyan, hovering_color=color_lime)
+
+        # Thay đổi màu khi di chuyển chuột vào nút
+        for button in [PLAY_BUTTON, HOW_TO_PLAY_BUTTON, QUIT_BUTTON]:
+            button.changeColor(MOUSE_POS)
+            button.update(WINDOW)
+        
+        pg.display.update()
+        
+        # Tạo chức năng cho các nút
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:
                 if PLAY_BUTTON.checkForInput(MOUSE_POS):
                     play()
-                if OPTIONS_BUTTON.checkForInput(MOUSE_POS):
-                    setting()
+                if HOW_TO_PLAY_BUTTON.checkForInput(MOUSE_POS):
+                    guide()
                 if QUIT_BUTTON.checkForInput(MOUSE_POS):
                     pg.quit()
                     sys.exit()
-    main()
     
 if __name__ == "__main__":
     main()
