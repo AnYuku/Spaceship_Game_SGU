@@ -166,6 +166,10 @@ BULLET_HIT_SOUND = pg.mixer.Sound(os.path.join('Put files audio here', 'Grenade+
 BULLET_FIRE_SOUND = pg.mixer.Sound(os.path.join('Put files audio here', 'Gun+Silencer.mp3'))
 #
 EXPLORE_SPACESHIP_SOUND = pg.mixer.Sound(os.path.join('Put files audio here', 'Explosion_1.mp3'))
+#
+VICTORY_SOUND = pg.mixer.Sound(os.path.join('Put files audio here', 'Winning.mp3'))
+#
+RESTART_SOUND = pg.mixer.Sound(os.path.join('Put files audio here', 'Restart.wav'))
 #==================================================================================================================================================================#
 
 # Hàm in chữ lên màn hình
@@ -495,6 +499,7 @@ class Bullets(pg.sprite.Sprite):
         if self.rect.right > SCREEN_WIDTH:
             self.kill()
         if pg.sprite.spritecollide(self, alien_group, True):
+            BULLET_HIT_SOUND.play()
             self.kill()
 
 class Aliens(pg.sprite.Sprite):
@@ -530,6 +535,7 @@ class Alien_Bullets(pg.sprite.Sprite):
         if self.rect.right <= 0: # Khi đạn ra khỏi màn hình hiển thị
             self.kill() # thì sẽ biến mất
         if pg.sprite.spritecollide(self, spaceship_group_2, False, pg.sprite.collide_mask):
+            BULLET_HIT_SOUND.play()
             self.kill()
             # Giảm hp người chơi khi bị trúng đạn
             spaceship.health_remaining -= 1
@@ -588,6 +594,7 @@ def vs_bots():
         # Nếu hết quái thì sẽ hiển ra màn hình "Bạn thắng"
         if(len(alien_group) <= 0):
             reset_level()
+            VICTORY_SOUND.play()
             menu("YOU WON")
         
         # Lấy thời gian hiện tại
@@ -656,6 +663,7 @@ def menu(message):
                 sys.exit()
             if event.type == pg.MOUSEBUTTONDOWN:
                 if TRY_AGAIN_BUTTON.checkForInput(MOUSE_POS):
+                    RESTART_SOUND.play()
                     run = False
                     vs_bots()
                 if BACK_BUTTON.checkForInput(MOUSE_POS):
@@ -738,6 +746,7 @@ def paused():
 # Màn hình hiển thị sau khi chiến thắng
 def winner_menu(winner):
     run = True
+    VICTORY_SOUND.play()
     while(run):
         WINDOW.blit(BACKGROUND_VICTORY_MENU, (0, 0))
         
@@ -764,6 +773,7 @@ def winner_menu(winner):
             if event.type == pg.MOUSEBUTTONDOWN:
                 if TRY_AGAIN_BUTTON.checkForInput(MOUSE_POS):
                     run = False
+                    RESTART_SOUND.play()
                     vs_2_player()
                 if BACK_BUTTON.checkForInput(MOUSE_POS):
                     run = False
